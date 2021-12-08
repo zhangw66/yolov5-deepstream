@@ -11,9 +11,13 @@ namespace Yolo
     static constexpr float IGNORE_THRESH = 0.1f;
     static constexpr int MAX_OUTPUT_BBOX_COUNT = 1000;
     static constexpr int CLASS_NUM = 80;
+#if 0
     static constexpr int INPUT_H = 608;
     static constexpr int INPUT_W = 608;
-
+#else
+    static constexpr int INPUT_H = 320;
+    static constexpr int INPUT_W = 320;
+#endif
     struct YoloKernel
     {
         int width;

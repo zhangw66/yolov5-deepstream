@@ -20,7 +20,7 @@
 # DEALINGS IN THE SOFTWARE.
 ################################################################################
 
-CUDA_VER?=11.3
+CUDA_VER?=10.2
 ifeq ($(CUDA_VER),)
   $(error "CUDA_VER is not set")
 endif
@@ -29,16 +29,12 @@ NVCC:=/usr/local/cuda-$(CUDA_VER)/bin/nvcc
 
 CFLAGS:= -Wall -std=c++11 -shared -fPIC -Wno-error=deprecated-declarations
 CFLAGS+= -I../includes -I/usr/local/cuda-$(CUDA_VER)/include
-
+CFLAGS+= -I/opt/nvidia/deepstream/deepstream/sources/includes
 LIBS:= -lnvinfer_plugin -lnvinfer -lnvparsers -L/usr/local/cuda-$(CUDA_VER)/lib64 -lcudart -lcublas -lstdc++fs
 LFLAGS:= -shared -Wl,--start-group $(LIBS) -Wl,--end-group
 
 INCS:= $(wildcard *.h) 
-SRCFILES:= nvdsinfer_yolo_engine.cpp \
-           nvdsparsebbox_Yolo.cpp   \
-           trt_utils.cpp              \
-           yolo.cpp              \
-           yoloPlugins.cpp
+SRCFILES:= nvdsparsebbox_Yolo.cpp
 TARGET_LIB:= libnvdsinfer_custom_impl_Yolo.so
 
 TARGET_OBJS:= $(SRCFILES:.cpp=.o)
