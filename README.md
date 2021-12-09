@@ -1,15 +1,30 @@
-# 0.Instruction
-This Repos contains how to run yolov5 model in DeepStream 5.0
+# yolov5
 
-# 1.Geneate yolov5 engine model 
-We can use https://github.com/wang-xinyu/tensorrtx yolov5 to generate engine model
+The Pytorch implementation is [ultralytics/yolov5](https://github.com/ultralytics/yolov5).
 
-### Important Note:
-   You should replace yololayer.cu and hardswish.cu file in tensorrtx/yolov5
+Currently, we support yolov5 v1.0(yolov5s only), v2.0, v3.0 and v3.1.
 
-### How to Run, yolov5s as example
--- a). generate yolov5s.wts from pytorch with yolov5s.pt
+- For yolov5 v3.1, please visit [yolov5 release v3.1](https://github.com/ultralytics/yolov5/releases/tag/v3.1), and use the latest commit of this repo.
+- For yolov5 v3.0, please visit [yolov5 release v3.0](https://github.com/ultralytics/yolov5/releases/tag/v3.0), and use the latest commit of this repo.
+- For yolov5 v2.0, please visit [yolov5 release v2.0](https://github.com/ultralytics/yolov5/releases/tag/v2.0), and checkout commit ['5cfa444'](https://github.com/wang-xinyu/tensorrtx/commit/5cfa4445170eabaa54acd5ad7f469ef65a8763f1) of this repo.
+- For yolov5 v1.0, please visit [yolov5 release v1.0](https://github.com/ultralytics/yolov5/releases/tag/v1.0), and checkout commit ['f09aa3b'](https://github.com/wang-xinyu/tensorrtx/commit/f09aa3bbebf4d4d37b6d3b32a1d39e1f2678a07b) of this repo.
+
+## Config
+
+- Choose the model s/m/l/x by `NET` macro in yolov5.cpp
+- Input shape defined in yololayer.h
+- Number of classes defined in yololayer.h, **DO NOT FORGET TO ADAPT THIS, If using your own model**
+- FP16/FP32 can be selected by the macro in yolov5.cpp
+- GPU id can be selected by the macro in yolov5.cpp
+- NMS thresh in yolov5.cpp
+- BBox confidence thresh in yolov5.cpp
+- Batch size in yolov5.cpp
+
+## How to Run, yolov5s as example
+
 ```
+1. generate yolov5s.wts from pytorch with yolov5s.pt, or download .wts from model zoo
+
 git clone https://github.com/wang-xinyu/tensorrtx.git
 git clone https://github.com/ultralytics/yolov5.git
 // download its weights 'yolov5s.pt'
@@ -18,38 +33,38 @@ git clone https://github.com/ultralytics/yolov5.git
 // go to ultralytics/yolov5
 python gen_wts.py
 // a file 'yolov5s.wts' will be generated.
-```
--- b). build tensorrtx/yolov5 and run
-```
+
+2. build tensorrtx/yolov5 and run
+
 // put yolov5s.wts into tensorrtx/yolov5
 // go to tensorrtx/yolov5
 // ensure the macro NET in yolov5.cpp is s
+// update CLASS_NUM in yololayer.h if your model is trained on custom dataset
 mkdir build
 cd build
 cmake ..
 make
 sudo ./yolov5 -s             // serialize model to plan file i.e. 'yolov5s.engine'
+sudo ./yolov5 -d  ../samples // deserialize plan file and run inference, the images in samples will be processed.
+
+3. check the images generated, as follows. _zidane.jpg and _bus.jpg
+
+4. optional, load and run the tensorrt model in python
+
+// install python-tensorrt, pycuda, etc.
+// ensure the yolov5s.engine and libmyplugins.so have been built
+python yolov5_trt.py
 ```
-We can get 'yolov5s.engine' and 'libmyplugin.so' here for the future use.
 
-# 2.Build DeepStream 5.0 nvdsinfer_custom_impl_yolo plugin
-In Deepstream 5.0/nvdsinfer_custom_impl_Yolo Directory, exec 'make' command.
+<p align="center">
+<img src="https://user-images.githubusercontent.com/15235574/78247927-4d9fac00-751e-11ea-8b1b-704a0aeb3fcf.jpg">
+</p>
 
-We can get libnvdsinfer_custom_impl_Yolo.so here.
+<p align="center">
+<img src="https://user-images.githubusercontent.com/15235574/78247970-60b27c00-751e-11ea-88df-41473fed4823.jpg">
+</p>
 
+## More Information
 
-# 3.Modify configure file
-After build yolov5 plugin, modify 'config_infer_primary_yoloV5.txt' in Deepstream 5.0 Directory.
+See the readme in [home page.](https://github.com/wang-xinyu/tensorrtx)
 
--- a).In Line 58. "parse-bbox-func-name=NvDsInferParseCustomYoloV5"   // This is the bbox parse function name.
-
--- b).In Line 59. "custom-lib-path"   // This is DeepStream plugin path.
-
--- c).In Line 56. Comment "#cluster-mode=2". Becase we use custom NMS function.
-
-# 4. How to run it
-
-Running the application as
-```
-LD_PRELOAD=./libcustomOp.so deepstream-app -c <app-config>
-```

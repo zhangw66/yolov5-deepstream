@@ -1,6 +1,6 @@
 [application]
 enable-perf-measurement=1
-perf-measurement-interval-sec=5
+perf-measurement-interval-sec=1
 #gie-kitti-output-dir=streamscl
 
 [tiled-display]
@@ -63,7 +63,7 @@ nvbuf-memory-type=0
 gpu-id=0
 ##Boolean property to inform muxer that sources are live
 live-source=0
-batch-size=4
+batch-size=1
 ##time out in usec, to wait after the first buffer is available
 ##to push the batch even if the complete batch is not formed
 batched-push-timeout=40000
@@ -88,7 +88,6 @@ bbox-border-color1=0;1;1;1
 bbox-border-color2=0;0;1;1
 bbox-border-color3=0;1;0;1
 interval=0
-gie-unique-id=1
 nvbuf-memory-type=0
 config-file=config_infer_primary_yoloV5.txt
 

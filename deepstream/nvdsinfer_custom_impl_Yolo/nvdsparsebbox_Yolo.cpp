@@ -29,12 +29,9 @@
 #include <unordered_map>
 #include <map>
 #include "nvdsinfer_custom_impl.h"
-//#include "trt_utils.h"
-
-static const int NUM_CLASSES_YOLO = 80;
+#include "../../common.hpp"
 #define NMS_THRESH 0.5
 #define CONF_THRESH 0.7
-#define BATCH_SIZE 1
 
 extern "C" bool NvDsInferParseCustomYoloV5(
     std::vector<NvDsInferLayerInfo> const &outputLayersInfo,
@@ -43,60 +40,6 @@ extern "C" bool NvDsInferParseCustomYoloV5(
     std::vector<NvDsInferParseObjectInfo> &objectList);
 
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static constexpr int LOCATIONS = 4;
-struct alignas(float) Detection{
-        //center_x center_y w h
-        float bbox[LOCATIONS];
-        float conf;  // bbox_conf * cls_conf
-        float class_id;
-    };
-
-float iou(float lbox[4], float rbox[4]) {
-    float interBox[] = {
-        std::max(lbox[0] - lbox[2]/2.f , rbox[0] - rbox[2]/2.f), //left
-        std::min(lbox[0] + lbox[2]/2.f , rbox[0] + rbox[2]/2.f), //right
-        std::max(lbox[1] - lbox[3]/2.f , rbox[1] - rbox[3]/2.f), //top
-        std::min(lbox[1] + lbox[3]/2.f , rbox[1] + rbox[3]/2.f), //bottom
-    };
-
-    if(interBox[2] > interBox[3] || interBox[0] > interBox[1])
-        return 0.0f;
-
-    float interBoxS =(interBox[1]-interBox[0])*(interBox[3]-interBox[2]);
-    return interBoxS/(lbox[2]*lbox[3] + rbox[2]*rbox[3] -interBoxS);
-}
-
-bool cmp(Detection& a, Detection& b) {
-    return a.conf > b.conf;
-}
-
-void nms(std::vector<Detection>& res, float *output, float conf_thresh, float nms_thresh = 0.5) {
-    int det_size = sizeof(Detection) / sizeof(float);
-    std::map<float, std::vector<Detection>> m;
-    for (int i = 0; i < output[0] && i < 1000; i++) {
-        if (output[1 + det_size * i + 4] <= conf_thresh) continue;
-        Detection det;
-        memcpy(&det, &output[1 + det_size * i], det_size * sizeof(float));
-        if (m.count(det.class_id) == 0) m.emplace(det.class_id, std::vector<Detection>());
-        m[det.class_id].push_back(det);
-    }
-    for (auto it = m.begin(); it != m.end(); it++) {
-        //std::cout << it->second[0].class_id << " --- " << std::endl;
-        auto& dets = it->second;
-        std::sort(dets.begin(), dets.end(), cmp);
-        for (size_t m = 0; m < dets.size(); ++m) {
-            auto& item = dets[m];
-            res.push_back(item);
-            for (size_t n = m + 1; n < dets.size(); ++n) {
-                if (iou(item.bbox, dets[n].bbox) > nms_thresh) {
-                    dets.erase(dets.begin()+n);
-                    --n;
-                }
-            }
-        }
-    }
-}
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /* This is a sample bounding box parsing function for the sample YoloV5m detector model */
@@ -106,14 +49,14 @@ static bool NvDsInferParseYoloV5(
     NvDsInferParseDetectionParams const& detectionParams,
     std::vector<NvDsInferParseObjectInfo>& objectList)
 {
-    if (NUM_CLASSES_YOLO != detectionParams.numClassesConfigured)
+    if (Yolo::CLASS_NUM != detectionParams.numClassesConfigured)
     {
         std::cerr << "WARNING: Num classes mismatch. Configured:"
                   << detectionParams.numClassesConfigured
-                  << ", detected by network: " << NUM_CLASSES_YOLO << std::endl;
+                  << ", detected by network: " << Yolo::CLASS_NUM << std::endl;
     }
 
-    std::vector<Detection> res;
+    std::vector<Yolo::Detection> res;
 
     nms(res, (float*)(outputLayersInfo[0].buffer), CONF_THRESH, NMS_THRESH);
     //std::cout<<"Nms done sucessfully----"<<std::endl;
