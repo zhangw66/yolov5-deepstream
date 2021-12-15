@@ -42,11 +42,12 @@ net-scale-factor=0.0039215697906911373
 model-color-format=0
 # custom-network-config=yolov3-tiny.cfg
 # model-file=yolov3-tiny.weights
-#model-engine-file=/opt/nvidia/deepstream/deepstream/sources/deepstream_yolov5/Yolov5-in-Deepstream-5.0/build/yolov5s.engine
-#model-engine-file=/data/grasp_model/yolov5x_origin_320_320.engine
+model-engine-file=/data/grasp_model/yolov5x_origin_320_320.engine
 #model-engine-file=/data/grasp_model/yolov5x_origin_608_608.engine
-model-engine-file=/data/grasp_model/yolov5x_grasp18_320_320.engine
+#model-engine-file=/data/grasp_model/yolov5x_grasp18_320_320.engine
 #model-engine-file=/data/grasp_model/yolov5x_grasp18_608_608.engine
+#model-engine-file=/data/grasp_model/yolov5s_origin_608_608.engine
+#model-engine-file=/data/grasp_model/yolov5s_origin_320_320.engine
 labelfile-path=labels.txt
 process-mode=1
 ## 0=FP32, 1=INT8, 2=FP16 mode
