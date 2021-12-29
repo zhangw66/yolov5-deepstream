@@ -10,7 +10,7 @@
 #define CONF_THRESH 0.5
 #define BATCH_SIZE 1
 
-#define NET s  // s m l x
+#define NET m  // s m l x
 #define NETSTRUCT(str) createEngine_##str
 #define CREATENET(net) NETSTRUCT(net)
 #define STR1(x) #x
@@ -147,37 +147,48 @@ ICudaEngine* createEngine_m(unsigned int maxBatchSize, IBuilder* builder, IBuild
     deconv11->setStrideNd(DimsHW{ 2, 2 });
     deconv11->setNbGroups(384);
     weightMap["deconv11"] = deconvwts11;
-    ITensor* inputTensors12[] = { deconv11->getOutput(0), bottleneck_csp6->getOutput(0) };
-    auto cat12 = network->addConcatenation(inputTensors12, 2);
+    /*
+        新的模型这里多了一个Upsample12.并且后边的数字全部加一了.
+        115_model.Upsample_11                   -         -  
+        116_model.Upsample_12                   -         -
+    */
+    Weights deconvwts12{ DataType::kFLOAT, deval, 384 * 1 * 1 };
+    IDeconvolutionLayer* deconv12 = network->addDeconvolutionNd(*deconv11->getOutput(0), 384, DimsHW{ 1, 1 }, deconvwts12, emptywts);
+    deconv12->setStrideNd(DimsHW{ 1, 1 });
+    deconv12->setNbGroups(384);
 
-    auto bottleneck_csp13 = bottleneckCSP(network, weightMap, *cat12->getOutput(0), 768, 384, 2, false, 1, 0.5, "model.13");
 
-    auto conv14 = convBlock(network, weightMap, *bottleneck_csp13->getOutput(0), 192, 1, 1, 1, "model.14");
+    ITensor* inputTensors13[] = { deconv12->getOutput(0), bottleneck_csp6->getOutput(0) };
+    auto cat13 = network->addConcatenation(inputTensors13, 2);
 
-    Weights deconvwts15{ DataType::kFLOAT, deval, 192 * 2 * 2 };
-    IDeconvolutionLayer* deconv15 = network->addDeconvolutionNd(*conv14->getOutput(0), 192, DimsHW{ 2, 2 }, deconvwts15, emptywts);
-    deconv15->setStrideNd(DimsHW{ 2, 2 });
-    deconv15->setNbGroups(192);
+    auto bottleneck_csp14 = bottleneckCSP(network, weightMap, *cat13->getOutput(0), 768, 384, 2, false, 1, 0.5, "model.14");
 
-    ITensor* inputTensors16[] = { deconv15->getOutput(0), bottleneck_csp4->getOutput(0) };
-    auto cat16 = network->addConcatenation(inputTensors16, 2);
-    auto bottleneck_csp17 = bottleneckCSP(network, weightMap, *cat16->getOutput(0), 384, 192, 2, false, 1, 0.5, "model.17");
+    auto conv15 = convBlock(network, weightMap, *bottleneck_csp14->getOutput(0), 192, 1, 1, 1, "model.15");
+
+    Weights deconvwts16{ DataType::kFLOAT, deval, 192 * 2 * 2 };
+    IDeconvolutionLayer* deconv16 = network->addDeconvolutionNd(*conv15->getOutput(0), 192, DimsHW{ 2, 2 }, deconvwts16, emptywts);
+    deconv16->setStrideNd(DimsHW{ 2, 2 });
+    deconv16->setNbGroups(192);
+
+    ITensor* inputTensors17[] = { deconv16->getOutput(0), bottleneck_csp4->getOutput(0) };
+    auto cat17 = network->addConcatenation(inputTensors17, 2);
+    auto bottleneck_csp18 = bottleneckCSP(network, weightMap, *cat17->getOutput(0), 384, 192, 2, false, 1, 0.5, "model.18");
 
     //yolo layer 0
-    IConvolutionLayer* det0 = network->addConvolutionNd(*bottleneck_csp17->getOutput(0), 3 * (Yolo::CLASS_NUM + 5), DimsHW{ 1, 1 }, weightMap["model.24.m.0.weight"], weightMap["model.24.m.0.bias"]);
-    auto conv18 = convBlock(network, weightMap, *bottleneck_csp17->getOutput(0), 192, 3, 2, 1, "model.18");
-    ITensor* inputTensors19[] = { conv18->getOutput(0), conv14->getOutput(0) };
-    auto cat19 = network->addConcatenation(inputTensors19, 2);
-    auto bottleneck_csp20 = bottleneckCSP(network, weightMap, *cat19->getOutput(0), 384, 384, 2, false, 1, 0.5, "model.20");
+    IConvolutionLayer* det0 = network->addConvolutionNd(*cat17->getOutput(0), 3 * (Yolo::CLASS_NUM + 5), DimsHW{ 1, 1 }, weightMap["model.25.m.0.weight"], weightMap["model.25.m.0.bias"]);
+    auto conv19 = convBlock(network, weightMap, *bottleneck_csp18->getOutput(0), 192, 3, 2, 1, "model.19");
+    ITensor* inputTensors20[] = { conv19->getOutput(0), bottleneck_csp14->getOutput(0) };
+    auto cat20 = network->addConcatenation(inputTensors20, 2);
+    auto bottleneck_csp21 = bottleneckCSP(network, weightMap, *cat20->getOutput(0), 384, 384, 2, false, 1, 0.5, "model.21");
 
     //yolo layer 1
-    IConvolutionLayer* det1 = network->addConvolutionNd(*bottleneck_csp20->getOutput(0), 3 * (Yolo::CLASS_NUM + 5), DimsHW{ 1, 1 }, weightMap["model.24.m.1.weight"], weightMap["model.24.m.1.bias"]);
-    auto conv21 = convBlock(network, weightMap, *bottleneck_csp20->getOutput(0), 384, 3, 2, 1, "model.21");
-    ITensor* inputTensors22[] = { conv21->getOutput(0), conv10->getOutput(0) };
-    auto cat22 = network->addConcatenation(inputTensors22, 2);
-    auto bottleneck_csp23 = bottleneckCSP(network, weightMap, *cat22->getOutput(0), 768, 768, 2, false, 1, 0.5, "model.23");
+    IConvolutionLayer* det1 = network->addConvolutionNd(*cat20->getOutput(0), 3 * (Yolo::CLASS_NUM + 5), DimsHW{ 1, 1 }, weightMap["model.25.m.1.weight"], weightMap["model.25.m.1.bias"]);
+    auto conv22 = convBlock(network, weightMap, *bottleneck_csp21->getOutput(0), 384, 3, 2, 1, "model.22");
+    ITensor* inputTensors23[] = { conv22->getOutput(0), conv10->getOutput(0) };
+    auto cat23 = network->addConcatenation(inputTensors23, 2);
+    auto bottleneck_csp24 = bottleneckCSP(network, weightMap, *cat23->getOutput(0), 768, 768, 2, false, 1, 0.5, "model.24");
     // yolo layer 2
-    IConvolutionLayer* det2 = network->addConvolutionNd(*bottleneck_csp23->getOutput(0), 3 * (Yolo::CLASS_NUM + 5), DimsHW{ 1, 1 }, weightMap["model.24.m.2.weight"], weightMap["model.24.m.2.bias"]);
+    IConvolutionLayer* det2 = network->addConvolutionNd(*cat23->getOutput(0), 3 * (Yolo::CLASS_NUM + 5), DimsHW{ 1, 1 }, weightMap["model.25.m.2.weight"], weightMap["model.25.m.2.bias"]);
 
     auto yolo = addYoLoLayer(network, weightMap, det0, det1, det2);
     yolo->getOutput(0)->setName(OUTPUT_BLOB_NAME);

@@ -300,7 +300,7 @@ int read_files_in_dir(const char *p_dir_name, std::vector<std::string> &file_nam
 std::vector<float> getAnchors(std::map<std::string, Weights>& weightMap)
 {
     std::vector<float> anchors_yolo;
-    Weights Yolo_Anchors = weightMap["model.24.anchor_grid"];
+    Weights Yolo_Anchors = weightMap["model.25.anchor_grid"];
     assert(Yolo_Anchors.count == 18);
     int each_yololayer_anchorsnum = Yolo_Anchors.count / 3;
     const float* tempAnchors = (const float*)(Yolo_Anchors.values);
